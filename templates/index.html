@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                <h4>我的積分</h4>
+                <h2 class="text-primary">{{ current_user.points }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4>可用的任務</h4>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for task in tasks %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">{{ task.title }}</h5>
+                            <small class="text-muted">{{ task.points }} 積分</small>
+                        </div>
+                        <p class="mb-1">{{ task.description }}</p>
+                        <form method="POST" action="{{ url_for('complete_task', task_id=task.id) }}" class="mt-2">
+                            <button type="submit" class="btn btn-sm btn-success">完成任務</button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4>我的任務記錄</h4>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>任務</th>
+                                <th>完成時間</th>
+                                <th>狀態</th>
+                                <th>積分</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in user_tasks %}
+                            <tr>
+                                <td>{{ record.task.title }}</td>
+                                <td>{{ record.completed_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    {% if record.status == 'pending' %}
+                                        <span class="badge bg-warning">待審核</span>
+                                    {% elif record.status == 'approved' %}
+                                        <span class="badge bg-success">已通過</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">已拒絕</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ record.task.points }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
