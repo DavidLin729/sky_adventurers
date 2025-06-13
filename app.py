@@ -1,8 +1,9 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
+from functools import wraps
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
@@ -18,6 +19,17 @@ class User(db.Model):
     password_hash = db.Column(db.String(120), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
     points = db.Column(db.Integer, default=0)
+    is_active = db.Column(db.Boolean, default=True)
+    adventurer_level = db.Column(db.String(20), default='木級冒險者')
+
+    @property
+    def used_points(self):
+        # 已通過的兌換申請總積分
+        return sum([r.reward.points for r in self.reward_redeems if r.status == 'approved'])
+
+    @property
+    def unused_points(self):
+        return self.points
 
 class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -25,6 +37,9 @@ class Task(db.Model):
     description = db.Column(db.Text)
     points = db.Column(db.Integer, nullable=False)
     is_active = db.Column(db.Boolean, default=True)
+    level = db.Column(db.String(2), default='E')  # S, A, B, C, D, E
+    is_group = db.Column(db.Boolean, default=False)
+    task_type = db.Column(db.String(10), default='每日')  # 每日, 每周, 每月, 隨機, 公會指派
 
 class UserTask(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -32,6 +47,48 @@ class UserTask(db.Model):
     task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=False)
     completed_at = db.Column(db.DateTime, nullable=False)
     status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    user = db.relationship('User', backref='tasks')
+    task = db.relationship('Task', backref='user_tasks')
+
+class Reward(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    points = db.Column(db.Integer, nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
+
+class RewardRedeem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    reward_id = db.Column(db.Integer, db.ForeignKey('reward.id'), nullable=False)
+    redeemed_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    user = db.relationship('User', backref='reward_redeems')
+    reward = db.relationship('Reward', backref='redeems')
+
+# 裝飾器：檢查是否為管理員
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('is_admin'):
+            flash('需要管理員權限', 'error')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# 初始化管理員帳號
+def init_admin():
+    admin = User.query.filter_by(username='admin').first()
+    if not admin:
+        admin = User(
+            username='admin',
+            password_hash=generate_password_hash('admin123'),
+            is_admin=True
+        )
+        db.session.add(admin)
+        db.session.commit()
+        print('管理員帳號已建立')
+    return admin
 
 # 路由
 @app.route('/')
@@ -46,7 +103,10 @@ def index():
     return render_template('index.html', 
                          current_user=current_user,
                          tasks=tasks,
-                         user_tasks=user_tasks)
+                         user_tasks=user_tasks,
+                         total_points=current_user.points + current_user.used_points,
+                         used_points=current_user.used_points,
+                         unused_points=current_user.unused_points)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -59,7 +119,10 @@ def login():
             session['user_id'] = user.id
             session['is_admin'] = user.is_admin
             flash('登入成功！', 'success')
-            return redirect(url_for('index'))
+            if user.is_admin:
+                return redirect(url_for('admin_dashboard'))
+            else:
+                return redirect(url_for('index'))
         flash('使用者名稱或密碼錯誤', 'error')
     return render_template('login.html')
 
@@ -109,7 +172,282 @@ def complete_task(task_id):
     flash('任務已完成，等待審核', 'success')
     return redirect(url_for('index'))
 
+# 管理員路由
+@app.route('/admin')
+@admin_required
+def admin_dashboard():
+    stats = {
+        'total_users': User.query.count(),
+        'pending_tasks': UserTask.query.filter_by(status='pending').count(),
+        'today_completed': UserTask.query.filter(
+            UserTask.completed_at >= datetime.now().date()
+        ).count()
+    }
+    recent_activities = UserTask.query.order_by(UserTask.completed_at.desc()).limit(10).all()
+    return render_template('admin/dashboard.html', stats=stats, recent_activities=recent_activities)
+
+@app.route('/admin/tasks')
+@admin_required
+def admin_tasks():
+    tasks = Task.query.all()
+    return render_template('admin/tasks.html', tasks=tasks)
+
+@app.route('/admin/users')
+@admin_required
+def admin_users():
+    users = User.query.all()
+    return render_template('admin/users.html', users=users)
+
+@app.route('/admin/reviews')
+@admin_required
+def admin_reviews():
+    pending_tasks = UserTask.query.filter_by(status='pending').order_by(UserTask.completed_at.desc()).all()
+    return render_template('admin/reviews.html', pending_tasks=pending_tasks)
+
+@app.route('/admin/task/<int:task_id>', methods=['GET'])
+@admin_required
+def get_task(task_id):
+    task = Task.query.get_or_404(task_id)
+    return jsonify({
+        'id': task.id,
+        'title': task.title,
+        'description': task.description,
+        'points': task.points,
+        'is_active': task.is_active
+    })
+
+@app.route('/admin/task/<int:task_id>', methods=['DELETE'])
+@admin_required
+def delete_task(task_id):
+    task = Task.query.get_or_404(task_id)
+    db.session.delete(task)
+    db.session.commit()
+    return '', 204
+
+@app.route('/admin/task/add', methods=['POST'])
+@admin_required
+def admin_add_task():
+    task = Task(
+        title=request.form.get('title'),
+        description=request.form.get('description'),
+        points=int(request.form.get('points')),
+        is_active=True,
+        level=request.form.get('level', 'E'),
+        is_group=request.form.get('is_group') == 'on',
+        task_type=request.form.get('task_type', '每日')
+    )
+    db.session.add(task)
+    db.session.commit()
+    flash('任務已新增', 'success')
+    return redirect(url_for('admin_tasks'))
+
+@app.route('/admin/task/edit', methods=['POST'])
+@admin_required
+def admin_edit_task():
+    task = Task.query.get_or_404(request.form.get('task_id'))
+    task.title = request.form.get('title')
+    task.description = request.form.get('description')
+    task.points = int(request.form.get('points'))
+    task.is_active = 'is_active' in request.form
+    task.level = request.form.get('level', 'E')
+    task.is_group = request.form.get('is_group') == 'on'
+    task.task_type = request.form.get('task_type', '每日')
+    db.session.commit()
+    flash('任務已更新', 'success')
+    return redirect(url_for('admin_tasks'))
+
+@app.route('/admin/user/<int:user_id>/toggle_admin', methods=['POST'])
+@admin_required
+def toggle_admin(user_id):
+    user = User.query.get_or_404(user_id)
+    if user.id == session['user_id']:
+        flash('不能修改自己的管理員權限', 'error')
+        return redirect(url_for('admin_users'))
+    user.is_admin = not user.is_admin
+    db.session.commit()
+    flash('使用者權限已更新', 'success')
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/task/<int:user_task_id>/review', methods=['POST'])
+@admin_required
+def review_task(user_task_id):
+    user_task = UserTask.query.get_or_404(user_task_id)
+    action = request.form.get('action')
+    
+    if action == 'approve':
+        user_task.status = 'approved'
+        user_task.user.points += user_task.task.points
+        if 'review_notifications' not in session:
+            session['review_notifications'] = []
+        session['review_notifications'].append(f"您的任務『{user_task.task.title}』已通過審核，獲得 {user_task.task.points} 分！")
+        flash('任務已通過', 'success')
+    elif action == 'reject':
+        user_task.status = 'rejected'
+        if 'review_notifications' not in session:
+            session['review_notifications'] = []
+        session['review_notifications'].append(f"您的任務『{user_task.task.title}』未通過審核，請再接再厲！")
+        flash('任務已拒絕', 'success')
+    
+    db.session.commit()
+    return redirect(url_for('admin_reviews'))
+
+# 使用者：積分兌換頁面
+@app.route('/rewards')
+def rewards():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    current_user = User.query.get(session['user_id'])
+    rewards = Reward.query.filter_by(is_active=True).all()
+    my_redeems = RewardRedeem.query.filter_by(user_id=current_user.id).order_by(RewardRedeem.redeemed_at.desc()).all()
+    return render_template('rewards.html', current_user=current_user, rewards=rewards, my_redeems=my_redeems,
+                           total_points=current_user.points + current_user.used_points,
+                           used_points=current_user.used_points,
+                           unused_points=current_user.unused_points)
+
+# 使用者：申請兌換獎勵
+@app.route('/redeem/<int:reward_id>', methods=['POST'])
+def redeem_reward(reward_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    user = User.query.get(session['user_id'])
+    reward = Reward.query.get_or_404(reward_id)
+    if user.points < reward.points:
+        flash('積分不足，無法兌換', 'error')
+        return redirect(url_for('rewards'))
+    redeem = RewardRedeem(user_id=user.id, reward_id=reward.id)
+    db.session.add(redeem)
+    db.session.commit()
+    flash('兌換申請已送出，請等待管理員審核', 'success')
+    return redirect(url_for('rewards'))
+
+# 管理員：獎勵管理頁面
+@app.route('/admin/rewards')
+@admin_required
+def admin_rewards():
+    rewards = Reward.query.all()
+    return render_template('admin/rewards.html', rewards=rewards)
+
+# 管理員：新增獎勵
+@app.route('/admin/reward/add', methods=['POST'])
+@admin_required
+def admin_add_reward():
+    reward = Reward(
+        name=request.form.get('name'),
+        description=request.form.get('description'),
+        points=int(request.form.get('points')),
+        is_active='is_active' in request.form
+    )
+    db.session.add(reward)
+    db.session.commit()
+    flash('獎勵已新增', 'success')
+    return redirect(url_for('admin_rewards'))
+
+# 管理員：編輯獎勵
+@app.route('/admin/reward/edit', methods=['POST'])
+@admin_required
+def admin_edit_reward():
+    reward = Reward.query.get_or_404(request.form.get('reward_id'))
+    reward.name = request.form.get('name')
+    reward.description = request.form.get('description')
+    reward.points = int(request.form.get('points'))
+    reward.is_active = 'is_active' in request.form
+    db.session.commit()
+    flash('獎勵已更新', 'success')
+    return redirect(url_for('admin_rewards'))
+
+# 管理員：刪除獎勵
+@app.route('/admin/reward/<int:reward_id>/delete', methods=['POST'])
+@admin_required
+def admin_delete_reward(reward_id):
+    reward = Reward.query.get_or_404(reward_id)
+    db.session.delete(reward)
+    db.session.commit()
+    flash('獎勵已刪除', 'success')
+    return redirect(url_for('admin_rewards'))
+
+# 管理員：兌換申請審核頁面
+@app.route('/admin/redeems')
+@admin_required
+def admin_redeems():
+    redeems = RewardRedeem.query.order_by(RewardRedeem.redeemed_at.desc()).all()
+    return render_template('admin/redeems.html', redeems=redeems)
+
+# 管理員：審核兌換申請
+@app.route('/admin/redeem/<int:redeem_id>/review', methods=['POST'])
+@admin_required
+def review_redeem(redeem_id):
+    redeem = RewardRedeem.query.get_or_404(redeem_id)
+    action = request.form.get('action')
+    if action == 'approve':
+        if redeem.user.points < redeem.reward.points:
+            flash('使用者積分不足，無法通過兌換', 'error')
+        else:
+            redeem.status = 'approved'
+            redeem.user.points -= redeem.reward.points
+            flash('兌換申請已通過', 'success')
+    elif action == 'reject':
+        redeem.status = 'rejected'
+        flash('兌換申請已拒絕', 'success')
+    db.session.commit()
+    return redirect(url_for('admin_redeems'))
+
+@app.route('/admin/user/add', methods=['POST'])
+@admin_required
+def add_user():
+    username = request.form.get('username')
+    password = request.form.get('password')
+    adventurer_level = request.form.get('adventurer_level', '木級冒險者')
+    if not username or not password:
+        flash('請填寫完整資訊', 'error')
+        return redirect(url_for('admin_users'))
+    if User.query.filter_by(username=username).first():
+        flash('冒險者名稱已存在', 'error')
+        return redirect(url_for('admin_users'))
+    user = User(username=username, password_hash=generate_password_hash(password), is_active=True, adventurer_level=adventurer_level)
+    db.session.add(user)
+    db.session.commit()
+    flash('冒險者已新增', 'success')
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/user/<int:user_id>/edit', methods=['POST'])
+@admin_required
+def edit_user(user_id):
+    user = User.query.get_or_404(user_id)
+    username = request.form.get('username')
+    password = request.form.get('password')
+    adventurer_level = request.form.get('adventurer_level', user.adventurer_level)
+    if username:
+        user.username = username
+    if password:
+        user.password_hash = generate_password_hash(password)
+    user.adventurer_level = adventurer_level
+    db.session.commit()
+    flash('冒險者已更新', 'success')
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/user/<int:user_id>/delete', methods=['POST'])
+@admin_required
+def delete_user(user_id):
+    user = User.query.get_or_404(user_id)
+    if user.id == session['user_id']:
+        flash('不能刪除自己', 'error')
+        return redirect(url_for('admin_users'))
+    db.session.delete(user)
+    db.session.commit()
+    flash('使用者已刪除', 'success')
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/user/<int:user_id>/toggle_active', methods=['POST'])
+@admin_required
+def toggle_user_active(user_id):
+    user = User.query.get_or_404(user_id)
+    user.is_active = not user.is_active
+    db.session.commit()
+    flash('使用者狀態已更新', 'success')
+    return redirect(url_for('admin_users'))
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        init_admin()  # 初始化管理員帳號
     app.run(debug=True) 
