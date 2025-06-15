@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">管理員選單</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('admin_dashboard') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_dashboard' %} active{% endif %}">管理儀表板</a>
+                <a href="{{ url_for('admin_tasks') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_tasks' %} active{% endif %}">任務管理</a>
+                <a href="{{ url_for('admin_users') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_users' %} active{% endif %}">冒險者管理</a>
+                <a href="{{ url_for('admin_reviews') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_reviews' %} active{% endif %}">任務審核</a>
+                <a href="{{ url_for('admin_rewards') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_rewards' %} active{% endif %}">獎勵管理</a>
+                <a href="{{ url_for('admin_redeems') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_redeems' %} active{% endif %}">兌換審核</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-9">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">冒險者管理</h5>
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">新增冒險者</button>
+            </div>
+            <div class="card-body">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>冒險者名稱</th>
+                                <th>冒險者等級</th>
+                                <th>總積分</th>
+                                <th>已使用</th>
+                                <th>未使用</th>
+                                <th>管理員權限</th>
+                                <th>狀態</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td>{{ user.username }}</td>
+                                <td>{{ user.adventurer_level }}</td>
+                                <td>{{ user.points + user.used_points }}</td>
+                                <td>{{ user.used_points }}</td>
+                                <td>{{ user.unused_points }}</td>
+                                <td>
+                                    {% if user.is_admin %}
+                                        <span class="badge bg-primary">是</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">否</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if user.is_active %}
+                                        <span class="badge bg-success">啟用</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">停用</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if user.id != session.user_id %}
+                                    <form method="POST" action="{{ url_for('toggle_admin', user_id=user.id) }}" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-warning">
+                                            {% if user.is_admin %}
+                                                移除管理員
+                                            {% else %}
+                                                設為管理員
+                                            {% endif %}
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('toggle_user_active', user_id=user.id) }}" class="d-inline">
+                                        <button type="submit" class="btn btn-sm {% if user.is_active %}btn-secondary{% else %}btn-success{% endif %}">
+                                            {% if user.is_active %}暫停{% else %}啟用{% endif %}
+                                        </button>
+                                    </form>
+                                    <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#editUserModal{{ user.id }}">編輯</button>
+                                    <form method="POST" action="{{ url_for('delete_user', user_id=user.id) }}" class="d-inline" onsubmit="return confirm('確定要刪除這個冒險者嗎？');">
+                                        <button type="submit" class="btn btn-sm btn-danger">刪除</button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增冒險者 Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('add_user') }}">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addUserModalLabel">新增冒險者</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">冒險者名稱</label>
+            <input type="text" class="form-control" name="username" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">密碼</label>
+            <input type="password" class="form-control" name="password" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">冒險者等級</label>
+            <select class="form-select" name="adventurer_level" required>
+              <option value="木級冒險者">木級冒險者</option>
+              <option value="鐵級冒險者">鐵級冒險者</option>
+              <option value="銅級冒險者">銅級冒險者</option>
+              <option value="銀級冒險者">銀級冒險者</option>
+              <option value="金級冒險者">金級冒險者</option>
+              <option value="白金級冒險者">白金級冒險者</option>
+              <option value="黑鋼級冒險者">黑鋼級冒險者</option>
+              <option value="秘銀級冒險者">秘銀級冒險者</option>
+              <option value="山鐵級冒險者">山鐵級冒險者</option>
+              <option value="神金級冒險者">神金級冒險者</option>
+              <option value="傳說級冒險者">傳說級冒險者</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="submit" class="btn btn-primary">新增</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- 編輯冒險者 Modal -->
+{% for user in users %}
+<div class="modal fade" id="editUserModal{{ user.id }}" tabindex="-1" aria-labelledby="editUserModalLabel{{ user.id }}" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('edit_user', user_id=user.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editUserModalLabel{{ user.id }}">編輯冒險者</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">冒險者名稱</label>
+            <input type="text" class="form-control" name="username" value="{{ user.username }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">新密碼（如需修改）</label>
+            <input type="password" class="form-control" name="password">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">冒險者等級</label>
+            <select class="form-select" name="adventurer_level" required>
+              <option value="木級冒險者" {% if user.adventurer_level == '木級冒險者' %}selected{% endif %}>木級冒險者</option>
+              <option value="鐵級冒險者" {% if user.adventurer_level == '鐵級冒險者' %}selected{% endif %}>鐵級冒險者</option>
+              <option value="銅級冒險者" {% if user.adventurer_level == '銅級冒險者' %}selected{% endif %}>銅級冒險者</option>
+              <option value="銀級冒險者" {% if user.adventurer_level == '銀級冒險者' %}selected{% endif %}>銀級冒險者</option>
+              <option value="金級冒險者" {% if user.adventurer_level == '金級冒險者' %}selected{% endif %}>金級冒險者</option>
+              <option value="白金級冒險者" {% if user.adventurer_level == '白金級冒險者' %}selected{% endif %}>白金級冒險者</option>
+              <option value="黑鋼級冒險者" {% if user.adventurer_level == '黑鋼級冒險者' %}selected{% endif %}>黑鋼級冒險者</option>
+              <option value="秘銀級冒險者" {% if user.adventurer_level == '秘銀級冒險者' %}selected{% endif %}>秘銀級冒險者</option>
+              <option value="山鐵級冒險者" {% if user.adventurer_level == '山鐵級冒險者' %}selected{% endif %}>山鐵級冒險者</option>
+              <option value="神金級冒險者" {% if user.adventurer_level == '神金級冒險者' %}selected{% endif %}>神金級冒險者</option>
+              <option value="傳說級冒險者" {% if user.adventurer_level == '傳說級冒險者' %}selected{% endif %}>傳說級冒險者</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="submit" class="btn btn-primary">儲存變更</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endblock %} 

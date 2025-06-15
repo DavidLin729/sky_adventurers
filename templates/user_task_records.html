@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">我的任務紀錄</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>任務標題</th>
+                        <th>完成時間</th>
+                        <th>狀態</th>
+                        <th>積分</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user_task in user_tasks %}
+                    <tr>
+                        <td>{{ user_task.task.title }}</td>
+                        <td>{{ user_task.completed_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            {% if user_task.status == 'pending' %}
+                                <span class="badge bg-warning">待審核</span>
+                            {% elif user_task.status == 'approved' %}
+                                <span class="badge bg-success">已通過</span>
+                            {% else %}
+                                <span class="badge bg-danger">已拒絕</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ user_task.task.points }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %} 

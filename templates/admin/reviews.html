@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">管理員選單</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('admin_dashboard') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_dashboard' %} active{% endif %}">儀表板</a>
+                <a href="{{ url_for('admin_tasks') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_tasks' %} active{% endif %}">任務管理</a>
+                <a href="{{ url_for('admin_users') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_users' %} active{% endif %}">冒險者管理</a>
+                <a href="{{ url_for('admin_reviews') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_reviews' %} active{% endif %}">任務審核</a>
+                <a href="{{ url_for('admin_rewards') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_rewards' %} active{% endif %}">獎勵管理</a>
+                <a href="{{ url_for('admin_redeems') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_redeems' %} active{% endif %}">兌換審核</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-9">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">待審核任務</h5>
+            </div>
+            <div class="card-body">
+                {% if pending_tasks %}
+                <div class="list-group">
+                    {% for user_task in pending_tasks %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">{{ user_task.task.title }}</h5>
+                            <small>{{ user_task.completed_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                        </div>
+                        <p class="mb-1">{{ user_task.task.description }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge bg-info">冒險者：{{ user_task.user.username }}</span>
+                                <span class="badge bg-primary">積分：{{ user_task.task.points }}</span>
+                            </div>
+                            <div>
+                                <form method="POST" action="{{ url_for('review_task', user_task_id=user_task.id) }}" class="d-inline">
+                                    <input type="hidden" name="action" value="approve">
+                                    <button type="submit" class="btn btn-sm btn-success">通過</button>
+                                </form>
+                                <form method="POST" action="{{ url_for('review_task', user_task_id=user_task.id) }}" class="d-inline">
+                                    <input type="hidden" name="action" value="reject">
+                                    <button type="submit" class="btn btn-sm btn-danger">拒絕</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    目前沒有待審核的任務
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

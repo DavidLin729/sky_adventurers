@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">管理員選單</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('admin_dashboard') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_dashboard' %} active{% endif %}">儀表板</a>
+                <a href="{{ url_for('admin_tasks') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_tasks' %} active{% endif %}">任務管理</a>
+                <a href="{{ url_for('admin_users') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_users' %} active{% endif %}">冒險者管理</a>
+                <a href="{{ url_for('admin_reviews') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_reviews' %} active{% endif %}">任務審核</a>
+                <a href="{{ url_for('admin_rewards') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_rewards' %} active{% endif %}">獎勵管理</a>
+                <a href="{{ url_for('admin_redeems') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_redeems' %} active{% endif %}">兌換審核</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-9">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-body text-center">
+                        <h5>總冒險者人數</h5>
+                        <h2 class="text-primary">{{ stats.total_users }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-body text-center">
+                        <h5>待審核任務</h5>
+                        <h2 class="text-warning">{{ stats.pending_tasks }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-body text-center">
+                        <h5>今日完成任務</h5>
+                        <h2 class="text-success">{{ stats.today_completed }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">最近活動</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>冒險者</th>
+                                <th>任務</th>
+                                <th>時間</th>
+                                <th>狀態</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for activity in recent_activities %}
+                            <tr>
+                                <td>{{ activity.user.username }}</td>
+                                <td>{{ activity.task.title }}</td>
+                                <td>{{ activity.completed_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    {% if activity.status == 'pending' %}
+                                        <span class="badge bg-warning">待審核</span>
+                                    {% elif activity.status == 'approved' %}
+                                        <span class="badge bg-success">已通過</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">已拒絕</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

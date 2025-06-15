@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">管理員選單</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('admin_dashboard') }}" class="list-group-item list-group-item-action">儀表板</a>
+                <a href="{{ url_for('admin_tasks') }}" class="list-group-item list-group-item-action">任務管理</a>
+                <a href="{{ url_for('admin_users') }}" class="list-group-item list-group-item-action">冒險者管理</a>
+                <a href="{{ url_for('admin_reviews') }}" class="list-group-item list-group-item-action">任務審核</a>
+                <a href="{{ url_for('admin_rewards') }}" class="list-group-item list-group-item-action active">獎勵管理</a>
+                <a href="{{ url_for('admin_redeems') }}" class="list-group-item list-group-item-action">兌換審核</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-9">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">獎勵管理</h5>
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addRewardModal">新增獎勵</button>
+            </div>
+            <div class="card-body">
+                <!-- 篩選和排序控制項 -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" id="filterName" placeholder="搜尋名稱">
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select" id="filterStatus">
+                            <option value="">所有狀態</option>
+                            <option value="1">啟用</option>
+                            <option value="0">停用</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="number" class="form-control" id="filterPoints" placeholder="所需積分 ≥">
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table" id="rewardsTable">
+                        <thead>
+                            <tr>
+                                <th class="sortable" data-sort="name">名稱 <i class="fas fa-sort"></i></th>
+                                <th>描述</th>
+                                <th class="sortable" data-sort="points">所需積分 <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="status">狀態 <i class="fas fa-sort"></i></th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reward in rewards %}
+                            <tr data-name="{{ reward.name }}" data-points="{{ reward.points }}" data-status="{{ reward.is_active|int }}">
+                                <td>{{ reward.name }}</td>
+                                <td>{{ reward.description }}</td>
+                                <td>{{ reward.points }}</td>
+                                <td>
+                                    {% if reward.is_active %}
+                                        <span class="badge bg-success">啟用</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">停用</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#editRewardModal{{ reward.id }}">編輯</button>
+                                    <form method="POST" action="{{ url_for('admin_delete_reward', reward_id=reward.id) }}" class="d-inline" onsubmit="return confirm('確定要刪除這個獎勵嗎？');">
+                                        <button type="submit" class="btn btn-sm btn-danger">刪除</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <!-- 編輯獎勵 Modal -->
+                            <div class="modal fade" id="editRewardModal{{ reward.id }}" tabindex="-1" aria-labelledby="editRewardModalLabel{{ reward.id }}" aria-hidden="true">
+                              <div class="modal-dialog">
+                                <div class="modal-content">
+                                  <form method="POST" action="{{ url_for('admin_edit_reward') }}">
+                                    <div class="modal-header">
+                                      <h5 class="modal-title" id="editRewardModalLabel{{ reward.id }}">編輯獎勵</h5>
+                                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                      <input type="hidden" name="reward_id" value="{{ reward.id }}">
+                                      <div class="mb-3">
+                                        <label class="form-label">名稱</label>
+                                        <input type="text" class="form-control" name="name" value="{{ reward.name }}" required>
+                                      </div>
+                                      <div class="mb-3">
+                                        <label class="form-label">描述</label>
+                                        <textarea class="form-control" name="description">{{ reward.description }}</textarea>
+                                      </div>
+                                      <div class="mb-3">
+                                        <label class="form-label">所需積分</label>
+                                        <input type="number" class="form-control" name="points" value="{{ reward.points }}" required>
+                                      </div>
+                                      <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="is_active" id="editActive{{ reward.id }}" {% if reward.is_active %}checked{% endif %}>
+                                        <label class="form-check-label" for="editActive{{ reward.id }}">啟用</label>
+                                      </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                      <button type="submit" class="btn btn-primary">儲存變更</button>
+                                    </div>
+                                  </form>
+                                </div>
+                              </div>
+                            </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- 新增獎勵 Modal -->
+<div class="modal fade" id="addRewardModal" tabindex="-1" aria-labelledby="addRewardModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('admin_add_reward') }}">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addRewardModalLabel">新增獎勵</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">名稱</label>
+            <input type="text" class="form-control" name="name" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">描述</label>
+            <textarea class="form-control" name="description"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">所需積分</label>
+            <input type="number" class="form-control" name="points" required>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="is_active" id="addActive" checked>
+            <label class="form-check-label" for="addActive">啟用</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="submit" class="btn btn-primary">新增</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 篩選功能
+function filterTable() {
+    const name = document.getElementById('filterName').value.toLowerCase();
+    const status = document.getElementById('filterStatus').value;
+    const points = document.getElementById('filterPoints').value;
+    const rows = document.querySelectorAll('#rewardsTable tbody tr');
+    rows.forEach(row => {
+        const nameMatch = !name || row.dataset.name.toLowerCase().includes(name);
+        const statusMatch = !status || row.dataset.status === status;
+        const pointsMatch = !points || parseInt(row.dataset.points) >= parseInt(points);
+        row.style.display = nameMatch && statusMatch && pointsMatch ? '' : 'none';
+    });
+}
+// 排序功能
+let currentSort = {
+    column: null,
+    direction: 'asc'
+};
+function sortTable(column) {
+    const tbody = document.querySelector('#rewardsTable tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    if (currentSort.column === column) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSort.column = column;
+        currentSort.direction = 'asc';
+    }
+    rows.sort((a, b) => {
+        let aValue, bValue;
+        if (column === 'name') {
+            aValue = a.dataset.name.toLowerCase();
+            bValue = b.dataset.name.toLowerCase();
+        } else if (column === 'points') {
+            aValue = parseInt(a.dataset.points);
+            bValue = parseInt(b.dataset.points);
+        } else if (column === 'status') {
+            aValue = parseInt(a.dataset.status);
+            bValue = parseInt(b.dataset.status);
+        }
+        if (currentSort.direction === 'asc') {
+            return aValue > bValue ? 1 : -1;
+        } else {
+            return aValue < bValue ? 1 : -1;
+        }
+    });
+    rows.forEach(row => tbody.appendChild(row));
+    updateSortIcons(column);
+}
+function updateSortIcons(column) {
+    document.querySelectorAll('.sortable i').forEach(icon => {
+        icon.className = 'fas fa-sort';
+    });
+    const icon = document.querySelector(`[data-sort="${column}"] i`);
+    icon.className = `fas fa-sort-${currentSort.direction === 'asc' ? 'up' : 'down'}`;
+}
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('filterName').addEventListener('input', filterTable);
+    document.getElementById('filterStatus').addEventListener('change', filterTable);
+    document.getElementById('filterPoints').addEventListener('input', filterTable);
+    document.querySelectorAll('.sortable').forEach(header => {
+        header.addEventListener('click', () => sortTable(header.dataset.sort));
+    });
+});
+</script>
+{% endblock %} 

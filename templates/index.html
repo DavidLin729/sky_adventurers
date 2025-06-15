@@ -1,72 +1,128 @@
 {% extends "base.html" %}
 
 {% block content %}
+<!-- 首頁歡迎 Modal -->
+<div class="modal fade" id="welcomeModal" tabindex="-1" aria-labelledby="welcomeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content text-center">
+      <div class="modal-header border-0">
+        <h5 class="modal-title w-100" id="welcomeModalLabel">歡迎來到天空冒險者公會！</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="關閉"></button>
+      </div>
+      <div class="modal-body">
+        <img src="{{ url_for('static', filename='images/tasks.png') }}" alt="任務主題圖片" class="img-fluid mb-3" style="max-height:400px;object-fit:cover;">
+        <p class="lead">我是公會會長史達克林，歡迎來到天空冒險者公會，完成任務、累積積分，開啟你的冒險旅程！</p>
+      </div>
+      <div class="modal-footer border-0 justify-content-center">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">開始冒險</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if session.review_notifications %}
+    <div class="alert alert-info">
+        <ul class="mb-0">
+        {% for msg in session.review_notifications %}
+            <li>{{ msg }}</li>
+        {% endfor %}
+        </ul>
+    </div>
+    {% set session.review_notifications = [] %}
+{% endif %}
+
 <div class="row">
-    <div class="col-md-4">
+    <div class="col-12">
         <div class="card mb-4">
             <div class="card-body text-center">
-                <h4>我的積分</h4>
-                <h2 class="text-primary">{{ current_user.points }}</h2>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h4>可用的任務</h4>
-            </div>
-            <div class="card-body">
-                <div class="list-group">
-                    {% for task in tasks %}
-                    <div class="list-group-item">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1">{{ task.title }}</h5>
-                            <small class="text-muted">{{ task.points }} 積分</small>
-                        </div>
-                        <p class="mb-1">{{ task.description }}</p>
-                        <form method="POST" action="{{ url_for('complete_task', task_id=task.id) }}" class="mt-2">
-                            <button type="submit" class="btn btn-sm btn-success">完成任務</button>
-                        </form>
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <img src="{{ url_for('static', filename='images/tasks.png') }}" alt="任務主題圖片" class="img-fluid mb-3" style="max-height:200px;object-fit:cover;">
                     </div>
-                    {% endfor %}
+                    <div class="col-md-6">
+                        <div class="d-flex flex-column gap-3">
+                            <span class="badge bg-secondary px-4 py-2"><span class="h4 mb-0">總積分：{{ total_points }}</span></span>
+                            <span class="badge bg-success px-4 py-2"><span class="h4 mb-0">已使用：{{ used_points }}</span></span>
+                            <span class="badge bg-primary px-4 py-2"><span class="h4 mb-0">未使用：{{ unused_points }}</span></span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row mt-4">
+<div class="row">
     <div class="col-12">
         <div class="card">
             <div class="card-header">
-                <h4>我的任務記錄</h4>
+                <h4>可用的任務</h4>
             </div>
             <div class="card-body">
+                <!-- 篩選和排序控制項 -->
+                <div class="row mb-4">
+                    <div class="col-md-3 mb-2">
+                        <input type="text" id="searchInput" class="form-control" placeholder="搜尋任務...">
+                    </div>
+                    <div class="col-md-2 mb-2">
+                        <select id="levelFilter" class="form-select">
+                            <option value="">所有等級</option>
+                            <option value="S">S級</option>
+                            <option value="A">A級</option>
+                            <option value="B">B級</option>
+                            <option value="C">C級</option>
+                            <option value="D">D級</option>
+                            <option value="E">E級</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-2">
+                        <select id="groupFilter" class="form-select">
+                            <option value="">所有任務</option>
+                            <option value="1">團體任務</option>
+                            <option value="0">個人任務</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <select id="taskTypeFilter" class="form-select">
+                            <option value="">所有任務類型</option>
+                            <option value="每日">每日</option>
+                            <option value="每周">每周</option>
+                            <option value="每月">每月</option>
+                            <option value="隨機">隨機</option>
+                            <option value="公會指派">公會指派</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-2">
+                        <button id="resetFilters" class="btn btn-secondary w-100">重置篩選</button>
+                    </div>
+                </div>
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table" id="tasksTable">
                         <thead>
                             <tr>
-                                <th>任務</th>
-                                <th>完成時間</th>
-                                <th>狀態</th>
-                                <th>積分</th>
+                                <th class="sortable" data-sort="title">標題 <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="level">等級 <i class="fas fa-sort"></i></th>
+                                <th>團體任務</th>
+                                <th class="sortable" data-sort="task_type">任務類型 <i class="fas fa-sort"></i></th>
+                                <th>描述</th>
+                                <th class="sortable" data-sort="points">積分 <i class="fas fa-sort"></i></th>
+                                <th>操作</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for record in user_tasks %}
-                            <tr>
-                                <td>{{ record.task.title }}</td>
-                                <td>{{ record.completed_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            {% for task in tasks %}
+                            <tr data-level="{{ task.level }}" data-type="{{ task.task_type }}" data-group="{{ 1 if task.is_group else 0 }}">
+                                <td>{{ task.title }}</td>
+                                <td>{{ task.level }}</td>
+                                <td>{% if task.is_group %}是{% else %}否{% endif %}</td>
+                                <td>{{ task.task_type }}</td>
+                                <td>{{ task.description }}</td>
+                                <td>{{ task.points }}</td>
                                 <td>
-                                    {% if record.status == 'pending' %}
-                                        <span class="badge bg-warning">待審核</span>
-                                    {% elif record.status == 'approved' %}
-                                        <span class="badge bg-success">已通過</span>
-                                    {% else %}
-                                        <span class="badge bg-danger">已拒絕</span>
-                                    {% endif %}
+                                    <form method="POST" action="{{ url_for('complete_task', task_id=task.id) }}">
+                                        <button type="submit" class="btn btn-sm btn-success">完成任務</button>
+                                    </form>
                                 </td>
-                                <td>{{ record.task.points }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -76,4 +132,110 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 篩選與排序功能
+let currentSort = {
+    column: null,
+    direction: 'asc'
+};
+
+function filterTable() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const levelValue = document.getElementById('levelFilter').value;
+    const groupValue = document.getElementById('groupFilter').value;
+    const taskTypeValue = document.getElementById('taskTypeFilter').value;
+    const rows = document.querySelectorAll('#tasksTable tbody tr');
+
+    rows.forEach(row => {
+        const title = row.cells[0].textContent.toLowerCase();
+        const level = row.dataset.level;
+        const isGroup = row.dataset.group;
+        const taskType = row.dataset.type;
+
+        const matchesSearch = !searchTerm || title.includes(searchTerm);
+        const matchesLevel = !levelValue || level === levelValue;
+        const matchesGroup = !groupValue || isGroup === groupValue;
+        const matchesTaskType = !taskTypeValue || taskType === taskTypeValue;
+
+        row.style.display = matchesSearch && matchesLevel && matchesGroup && matchesTaskType ? '' : 'none';
+    });
+}
+
+function sortTable(column) {
+    const tbody = document.querySelector('#tasksTable tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+
+    if (currentSort.column === column) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSort.column = column;
+        currentSort.direction = 'asc';
+    }
+
+    rows.sort((a, b) => {
+        let aValue, bValue;
+        switch (column) {
+            case 'title':
+                aValue = a.cells[0].textContent;
+                bValue = b.cells[0].textContent;
+                break;
+            case 'level':
+                aValue = a.cells[1].textContent;
+                bValue = b.cells[1].textContent;
+                break;
+            case 'task_type':
+                aValue = a.cells[3].textContent;
+                bValue = b.cells[3].textContent;
+                break;
+            case 'points':
+                aValue = parseInt(a.cells[5].textContent);
+                bValue = parseInt(b.cells[5].textContent);
+                break;
+            default:
+                aValue = '';
+                bValue = '';
+        }
+        if (currentSort.direction === 'asc') {
+            return aValue > bValue ? 1 : -1;
+        } else {
+            return aValue < bValue ? 1 : -1;
+        }
+    });
+    rows.forEach(row => tbody.appendChild(row));
+    updateSortIcons(column);
+}
+
+function updateSortIcons(column) {
+    document.querySelectorAll('.sortable i').forEach(icon => {
+        icon.className = 'fas fa-sort';
+    });
+    const icon = document.querySelector(`[data-sort="${column}"] i`);
+    if (icon) {
+        icon.className = `fas fa-sort-${currentSort.direction === 'asc' ? 'up' : 'down'}`;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var welcomeModal = new bootstrap.Modal(document.getElementById('welcomeModal'));
+    welcomeModal.show();
+
+    document.getElementById('searchInput').addEventListener('input', filterTable);
+    document.getElementById('levelFilter').addEventListener('change', filterTable);
+    document.getElementById('groupFilter').addEventListener('change', filterTable);
+    document.getElementById('taskTypeFilter').addEventListener('change', filterTable);
+    document.getElementById('resetFilters').addEventListener('click', () => {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('levelFilter').value = '';
+        document.getElementById('groupFilter').value = '';
+        document.getElementById('taskTypeFilter').value = '';
+        filterTable();
+    });
+    document.querySelectorAll('.sortable').forEach(header => {
+        header.addEventListener('click', () => sortTable(header.dataset.sort));
+    });
+});
+</script>
 {% endblock %} 

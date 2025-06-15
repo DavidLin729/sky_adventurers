@@ -1,0 +1,351 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">管理員選單</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('admin_dashboard') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_dashboard' %} active{% endif %}">儀表板</a>
+                <a href="{{ url_for('admin_tasks') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_tasks' %} active{% endif %}">任務管理</a>
+                <a href="{{ url_for('admin_users') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_users' %} active{% endif %}">冒險者管理</a>
+                <a href="{{ url_for('admin_reviews') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_reviews' %} active{% endif %}">任務審核</a>
+                <a href="{{ url_for('admin_rewards') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_rewards' %} active{% endif %}">獎勵管理</a>
+                <a href="{{ url_for('admin_redeems') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_redeems' %} active{% endif %}">兌換審核</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-9">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">任務管理</h5>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                    新增任務
+                </button>
+            </div>
+            <div class="card-body">
+                <!-- 篩選和排序控制項 -->
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <select class="form-select" id="filterLevel">
+                            <option value="">所有任務等級</option>
+                            <option value="S">S級</option>
+                            <option value="A">A級</option>
+                            <option value="B">B級</option>
+                            <option value="C">C級</option>
+                            <option value="D">D級</option>
+                            <option value="E">E級</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="filterType">
+                            <option value="">所有任務類型</option>
+                            <option value="每日">每日</option>
+                            <option value="每周">每周</option>
+                            <option value="每月">每月</option>
+                            <option value="隨機">隨機</option>
+                            <option value="公會指派">公會指派</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="filterGroup">
+                            <option value="">所有任務</option>
+                            <option value="1">團體任務</option>
+                            <option value="0">個人任務</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="filterStatus">
+                            <option value="">所有狀態</option>
+                            <option value="1">啟用</option>
+                            <option value="0">停用</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table" id="tasksTable">
+                        <thead>
+                            <tr>
+                                <th class="sortable" data-sort="title">標題 <i class="fas fa-sort"></i></th>
+                                <th>描述</th>
+                                <th class="sortable" data-sort="points">積分 <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="level">任務等級 <i class="fas fa-sort"></i></th>
+                                <th>團體任務</th>
+                                <th class="sortable" data-sort="task_type">任務類型 <i class="fas fa-sort"></i></th>
+                                <th>狀態</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for task in tasks %}
+                            <tr data-level="{{ task.level }}" data-type="{{ task.task_type }}" data-group="{{ task.is_group|int }}" data-status="{{ task.is_active|int }}">
+                                <td>{{ task.title }}</td>
+                                <td>{{ task.description }}</td>
+                                <td>{{ task.points }}</td>
+                                <td>{{ task.level }}</td>
+                                <td>{% if task.is_group %}是{% else %}否{% endif %}</td>
+                                <td>{{ task.task_type }}</td>
+                                <td>
+                                    {% if task.is_active %}
+                                        <span class="badge bg-success">啟用</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">停用</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" onclick="editTask({{ task.id }})">編輯</button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteTask({{ task.id }})">刪除</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增任務 Modal -->
+<div class="modal fade" id="addTaskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">新增任務</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin_add_task') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">標題</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">描述</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">任務等級</label>
+                        <select class="form-select" name="level" id="level" required>
+                            <option value="S">S (100分)</option>
+                            <option value="A">A (50分)</option>
+                            <option value="B">B (10分)</option>
+                            <option value="C">C (5分)</option>
+                            <option value="D">D (3分)</option>
+                            <option value="E" selected>E (1分)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">團體任務</label>
+                        <select class="form-select" name="is_group" required>
+                            <option value="0" selected>否</option>
+                            <option value="1">是</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">任務類型</label>
+                        <select class="form-select" name="task_type" required>
+                            <option value="每日" selected>每日</option>
+                            <option value="每周">每周</option>
+                            <option value="每月">每月</option>
+                            <option value="隨機">隨機</option>
+                            <option value="公會指派">公會指派</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">新增</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 編輯任務 Modal -->
+<div class="modal fade" id="editTaskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">編輯任務</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin_edit_task') }}">
+                <input type="hidden" id="edit_task_id" name="task_id">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_title" class="form-label">標題</label>
+                        <input type="text" class="form-control" id="edit_title" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_description" class="form-label">描述</label>
+                        <textarea class="form-control" id="edit_description" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">任務等級</label>
+                        <select class="form-select" id="edit_level" name="level" required>
+                            <option value="S">S (100分)</option>
+                            <option value="A">A (50分)</option>
+                            <option value="B">B (10分)</option>
+                            <option value="C">C (5分)</option>
+                            <option value="D">D (3分)</option>
+                            <option value="E">E (1分)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">團體任務</label>
+                        <select class="form-select" id="edit_is_group" name="is_group" required>
+                            <option value="0">否</option>
+                            <option value="1">是</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">任務類型</label>
+                        <select class="form-select" id="edit_task_type" name="task_type" required>
+                            <option value="每日">每日</option>
+                            <option value="每周">每周</option>
+                            <option value="每月">每月</option>
+                            <option value="隨機">隨機</option>
+                            <option value="公會指派">公會指派</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="edit_is_active" name="is_active">
+                            <label class="form-check-label" for="edit_is_active">
+                                啟用任務
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">儲存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 篩選功能
+function filterTable() {
+    const level = document.getElementById('filterLevel').value;
+    const type = document.getElementById('filterType').value;
+    const group = document.getElementById('filterGroup').value;
+    const status = document.getElementById('filterStatus').value;
+    
+    const rows = document.querySelectorAll('#tasksTable tbody tr');
+    
+    rows.forEach(row => {
+        const levelMatch = !level || row.dataset.level === level;
+        const typeMatch = !type || row.dataset.type === type;
+        const groupMatch = !group || row.dataset.group === group;
+        const statusMatch = !status || row.dataset.status === status;
+        
+        row.style.display = levelMatch && typeMatch && groupMatch && statusMatch ? '' : 'none';
+    });
+}
+
+// 排序功能
+let currentSort = {
+    column: null,
+    direction: 'asc'
+};
+
+function sortTable(column) {
+    const tbody = document.querySelector('#tasksTable tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    if (currentSort.column === column) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSort.column = column;
+        currentSort.direction = 'asc';
+    }
+    
+    rows.sort((a, b) => {
+        let aValue = a.querySelector(`td:nth-child(${getColumnIndex(column)})`).textContent;
+        let bValue = b.querySelector(`td:nth-child(${getColumnIndex(column)})`).textContent;
+        
+        if (column === 'points') {
+            aValue = parseInt(aValue);
+            bValue = parseInt(bValue);
+        }
+        
+        if (currentSort.direction === 'asc') {
+            return aValue > bValue ? 1 : -1;
+        } else {
+            return aValue < bValue ? 1 : -1;
+        }
+    });
+    
+    rows.forEach(row => tbody.appendChild(row));
+    updateSortIcons(column);
+}
+
+function getColumnIndex(column) {
+    const columns = {
+        'title': 1,
+        'points': 3,
+        'level': 4,
+        'task_type': 6
+    };
+    return columns[column];
+}
+
+function updateSortIcons(column) {
+    document.querySelectorAll('.sortable i').forEach(icon => {
+        icon.className = 'fas fa-sort';
+    });
+    
+    const icon = document.querySelector(`[data-sort="${column}"] i`);
+    icon.className = `fas fa-sort-${currentSort.direction === 'asc' ? 'up' : 'down'}`;
+}
+
+// 綁定事件
+document.addEventListener('DOMContentLoaded', function() {
+    // 篩選事件
+    document.getElementById('filterLevel').addEventListener('change', filterTable);
+    document.getElementById('filterType').addEventListener('change', filterTable);
+    document.getElementById('filterGroup').addEventListener('change', filterTable);
+    document.getElementById('filterStatus').addEventListener('change', filterTable);
+    
+    // 排序事件
+    document.querySelectorAll('.sortable').forEach(header => {
+        header.addEventListener('click', () => sortTable(header.dataset.sort));
+    });
+});
+
+// 原有的編輯和刪除功能
+function editTask(taskId) {
+    fetch(`/admin/task/${taskId}`)
+        .then(response => response.json())
+        .then(task => {
+            document.getElementById('edit_task_id').value = task.id;
+            document.getElementById('edit_title').value = task.title;
+            document.getElementById('edit_description').value = task.description;
+            document.getElementById('edit_level').value = task.level;
+            document.getElementById('edit_is_group').value = task.is_group ? '1' : '0';
+            document.getElementById('edit_task_type').value = task.task_type;
+            document.getElementById('edit_is_active').checked = task.is_active;
+            new bootstrap.Modal(document.getElementById('editTaskModal')).show();
+        });
+}
+
+function deleteTask(taskId) {
+    if (confirm('確定要刪除這個任務嗎？')) {
+        fetch(`/admin/task/${taskId}`, {
+            method: 'DELETE',
+        }).then(() => {
+            window.location.reload();
+        });
+    }
+}
+</script>
+{% endblock %} 

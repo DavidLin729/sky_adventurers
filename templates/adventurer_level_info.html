@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+.badge-img {
+    width: 48px;
+    height: 48px;
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+    border-radius: 8px;
+}
+.badge-img:hover {
+    box-shadow: 0 0 8px #bfa14a;
+}
+.modal-img {
+    width: 100%;
+    max-width: 400px;
+    display: block;
+    margin: 0 auto;
+}
+</style>
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">冒險者等級說明</h5>
+    </div>
+    <div class="card-body">
+        <table class="table align-middle text-center">
+            <thead>
+                <tr>
+                    <th>等級順序</th>
+                    <th>徽章</th>
+                    <th>等級名稱</th>
+                    <th>等級說明</th>
+                    <th>晉級所需積分</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set badges = [
+                    'badge-001.png',
+                    'badge-002.png',
+                    'badge-003.png',
+                    'badge-004.png',
+                    'badge-005.png',
+                    'badge-006.png',
+                    'badge-007.png',
+                    'badge-008.png',
+                    'badge-009.png',
+                    'badge-010.png',
+                    'badge-011.png'
+                ] %}
+                {% set levels = [
+                    ['木級冒險者', '新手入門，剛加入公會的小冒險者', 0],
+                    ['鐵級冒險者', '初試啼聲，已完成一些日常任務', 100],
+                    ['銅級冒險者', '累積經驗，有基本任務完成能力', 200],
+                    ['銀級冒險者', '穩定表現，能完成周任務與特殊挑戰', 300],
+                    ['金級冒險者', '表現優秀，經常主動接受任務', 400],
+                    ['白金級冒險者', '已具備高責任感，任務完成率高', 500],
+                    ['黑鋼級冒險者', '接近頂尖，擁有特殊徽章或完成高難度任務', 600],
+                    ['秘銀級冒險者', '擁有智慧與紀律，開始具備指導他人的潛力', 700],
+                    ['山鐵級冒險者', '象徵堅毅持久，長期穩定地完成任務', 800],
+                    ['神金級冒險者', '頂級榮譽，需要大量貢獻與穩定表現', 900],
+                    ['傳說級冒險者', '僅有極少數人能達成，是公會的「神話人物」', 1000]
+                ] %}
+                {% for i in range(11) %}
+                <tr>
+                    <td>{{ i+1 }}</td>
+                    <td>
+                        <img src="{{ url_for('static', filename='images/' ~ badges[i]) }}" class="badge-img" alt="徽章{{ i+1 }}" data-bs-toggle="modal" data-bs-target="#badgeModal" onclick="showBadge('{{ url_for('static', filename='images/' ~ badges[i]) }}')">
+                    </td>
+                    <td>{{ levels[i][0] }}</td>
+                    <td>{{ levels[i][1] }}</td>
+                    <td>{{ levels[i][2] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 徽章放大 Modal -->
+<div class="modal fade" id="badgeModal" tabindex="-1" aria-labelledby="badgeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark">
+      <div class="modal-header border-0">
+        <h5 class="modal-title text-white" id="badgeModalLabel">冒險者徽章</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img id="modalBadgeImg" src="" class="modal-img" alt="徽章放大圖">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showBadge(imgUrl) {
+    document.getElementById('modalBadgeImg').src = imgUrl;
+}
+</script>
+{% endblock %} 

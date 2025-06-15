@@ -1,6 +1,123 @@
+/* Medieval Fantasy Theme */
 body {
-    background-color: #f8f9fa;
+    background: #F5E6C4 url('https://www.transparenttextures.com/patterns/wood-pattern.png');
+    font-family: 'Noto Serif TC', 'Merriweather', serif;
+    color: #4B2E05;
 }
+
+h1, h2, h3, h4, h5, h6, .navbar-brand, .card-header, .modal-title {
+    font-family: 'Cinzel', 'MedievalSharp', serif;
+    letter-spacing: 1px;
+    color: #22232A;
+}
+
+.navbar, .card-header, .modal-header {
+    background: linear-gradient(90deg, #4B2E05 60%, #22232A 100%);
+    color: #F5E6C4;
+    border-bottom: 3px solid #C9B037;
+}
+
+.navbar .nav-link, .navbar .navbar-brand {
+    color: #F5E6C4 !important;
+}
+
+.navbar .nav-link.active, .navbar .nav-link:hover {
+    color: #C9B037 !important;
+    text-shadow: 0 0 5px #22232A;
+}
+
+.card, .modal-content {
+    background: #fffbe6 url('https://www.transparenttextures.com/patterns/old-mathematics.png');
+    border: 2px solid #C9B037;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px #4B2E0522;
+}
+
+.card-header, .modal-header {
+    border-bottom: 2px solid #C9B037;
+}
+
+.btn-primary, .btn-success, .btn-danger, .btn-info, .btn-warning {
+    border-radius: 8px;
+    border: 2px solid #C9B037;
+    font-family: 'Cinzel', serif;
+    font-weight: bold;
+    letter-spacing: 1px;
+    box-shadow: 0 2px 8px #22232A22;
+    transition: background 0.2s, color 0.2s;
+}
+
+.btn-primary {
+    background: linear-gradient(90deg, #22232A 80%, #C9B037 100%);
+    color: #fffbe6;
+}
+.btn-primary:hover {
+    background: #C9B037;
+    color: #22232A;
+}
+
+.btn-success {
+    background: linear-gradient(90deg, #355E3B 80%, #C9B037 100%);
+    color: #fffbe6;
+}
+.btn-success:hover {
+    background: #C9B037;
+    color: #355E3B;
+}
+
+.btn-danger {
+    background: linear-gradient(90deg, #7B2D26 80%, #C9B037 100%);
+    color: #fffbe6;
+}
+.btn-danger:hover {
+    background: #C9B037;
+    color: #7B2D26;
+}
+
+.table th, .table td {
+    border-color: #C9B037;
+    background: #fffbe6cc;
+}
+
+.badge-primary, .badge.bg-primary {
+    background: #22232A !important;
+    color: #fffbe6 !important;
+    border: 1px solid #C9B037;
+}
+.badge-success, .badge.bg-success {
+    background: #355E3B !important;
+    color: #fffbe6 !important;
+    border: 1px solid #C9B037;
+}
+.badge-secondary, .badge.bg-secondary {
+    background: #6E6658 !important;
+    color: #fffbe6 !important;
+    border: 1px solid #C9B037;
+}
+
+/* 卷軸感邊框 */
+.card, .modal-content {
+    border-image: url('https://www.transparenttextures.com/patterns/wood-pattern.png') 30 30 round;
+}
+
+/* 旗幟標題 */
+.card-header, .modal-header {
+    background: linear-gradient(90deg, #C9B037 0%, #4B2E05 100%);
+    color: #22232A;
+    font-family: 'Cinzel', serif;
+    font-size: 1.2em;
+    letter-spacing: 2px;
+}
+
+/* 盾牌徽章（可用於 logo） */
+.logo-shield {
+    display: inline-block;
+    width: 48px;
+    height: 48px;
+    background: url('https://cdn.pixabay.com/photo/2013/07/13/12/46/shield-146298_1280.png') no-repeat center/contain;
+}
+
+/* 其他細節可依需求再補充 */
 
 .card {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -34,4 +151,39 @@ body {
 .badge {
     font-size: 0.9em;
     padding: 0.5em 0.8em;
+}
+
+/* 管理員選單（側邊欄）奇幻風格 */
+.list-group-flush .list-group-item {
+    background: #f5e6c4 url('https://www.transparenttextures.com/patterns/wood-pattern.png');
+    color: #4B2E05;
+    border: 0;
+    border-left: 6px solid transparent;
+    font-family: 'Cinzel', 'MedievalSharp', serif;
+    font-size: 1.08em;
+    margin-bottom: 2px;
+    transition: background 0.2s, color 0.2s, border-left 0.2s;
+    border-radius: 0 16px 16px 0;
+    padding-left: 1.5rem;
+}
+.list-group-flush .list-group-item.active, .list-group-flush .list-group-item:focus, .list-group-flush .list-group-item:hover {
+    background: linear-gradient(90deg, #C9B037 60%, #fffbe6 100%);
+    color: #22232A;
+    border-left: 6px solid #22232A;
+    font-weight: bold;
+    box-shadow: 2px 0 8px #C9B03744;
+}
+.card.mb-4 {
+    border: 3px solid #C9B037;
+    border-radius: 18px;
+    background: #fffbe6 url('https://www.transparenttextures.com/patterns/wood-pattern.png');
+    box-shadow: 0 4px 16px #4B2E0522;
+}
+.card-header {
+    background: linear-gradient(90deg, #C9B037 0%, #4B2E05 100%);
+    color: #22232A;
+    font-family: 'Cinzel', serif;
+    font-size: 1.15em;
+    letter-spacing: 2px;
+    border-bottom: 2px solid #C9B037;
 } 

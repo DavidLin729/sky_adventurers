@@ -4,13 +4,30 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from datetime import datetime, timedelta
 from functools import wraps
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///family_rewards.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['UPLOAD_FOLDER'] = 'static/uploads/avatars'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 限制上傳檔案大小為 16MB
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+# 確保上傳目錄存在
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 db = SQLAlchemy(app)
+
+@app.context_processor
+def inject_user():
+    if 'user_id' in session:
+        user = User.query.get(session['user_id'])
+        return {'user': user}
+    return {'user': None}
 
 # 資料庫模型
 class User(db.Model):
@@ -21,6 +38,7 @@ class User(db.Model):
     points = db.Column(db.Integer, default=0)
     is_active = db.Column(db.Boolean, default=True)
     adventurer_level = db.Column(db.String(20), default='木級冒險者')
+    avatar_url = db.Column(db.String(200), default='images/default_avatar.png')
 
     @property
     def used_points(self):
@@ -89,6 +107,16 @@ def init_admin():
         db.session.commit()
         print('管理員帳號已建立')
     return admin
+
+# 定義任務等級與對應積分
+TASK_LEVEL_POINTS = {
+    'S': 100,
+    'A': 50,
+    'B': 10,
+    'C': 5,
+    'D': 3,
+    'E': 1
+}
 
 # 路由
 @app.route('/')
@@ -213,7 +241,10 @@ def get_task(task_id):
         'title': task.title,
         'description': task.description,
         'points': task.points,
-        'is_active': task.is_active
+        'is_active': task.is_active,
+        'level': task.level,
+        'is_group': task.is_group,
+        'task_type': task.task_type
     })
 
 @app.route('/admin/task/<int:task_id>', methods=['DELETE'])
@@ -227,12 +258,14 @@ def delete_task(task_id):
 @app.route('/admin/task/add', methods=['POST'])
 @admin_required
 def admin_add_task():
+    level = request.form.get('level', 'E')
+    points = TASK_LEVEL_POINTS.get(level, 1)
     task = Task(
         title=request.form.get('title'),
         description=request.form.get('description'),
-        points=int(request.form.get('points')),
+        points=points,
         is_active=True,
-        level=request.form.get('level', 'E'),
+        level=level,
         is_group=request.form.get('is_group') == 'on',
         task_type=request.form.get('task_type', '每日')
     )
@@ -247,9 +280,9 @@ def admin_edit_task():
     task = Task.query.get_or_404(request.form.get('task_id'))
     task.title = request.form.get('title')
     task.description = request.form.get('description')
-    task.points = int(request.form.get('points'))
-    task.is_active = 'is_active' in request.form
     task.level = request.form.get('level', 'E')
+    task.points = TASK_LEVEL_POINTS.get(task.level, 1)
+    task.is_active = 'is_active' in request.form
     task.is_group = request.form.get('is_group') == 'on'
     task.task_type = request.form.get('task_type', '每日')
     db.session.commit()
@@ -445,6 +478,96 @@ def toggle_user_active(user_id):
     db.session.commit()
     flash('使用者狀態已更新', 'success')
     return redirect(url_for('admin_users'))
+
+@app.route('/adventurer_level_info')
+def adventurer_level_info():
+    return render_template('adventurer_level_info.html')
+
+@app.route('/user_task_records')
+def user_task_records():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    user_tasks = UserTask.query.filter_by(user_id=session['user_id']).order_by(UserTask.completed_at.desc()).all()
+    return render_template('user_task_records.html', user_tasks=user_tasks)
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/adventurer_profile')
+@login_required
+def adventurer_profile():
+    user_id = session['user_id']
+    user = User.query.get(user_id)
+    user_tasks = UserTask.query.filter_by(user_id=user_id).order_by(UserTask.completed_at.desc()).limit(10).all()
+    achievements = []  # 請根據你的專案實作
+    LEVEL_NAME_TO_NUM = {
+        '木級冒險者': 1,
+        '鐵級冒險者': 2,
+        '銅級冒險者': 3,
+        '銀級冒險者': 4,
+        '金級冒險者': 5,
+        '白金級冒險者': 6,
+        '黑鋼級冒險者': 7,
+        '秘銀級冒險者': 8,
+        '山鐵級冒險者': 9,
+        '神金級冒險者': 10,
+        '傳說級冒險者': 11
+    }
+    LEVEL_NAME_TO_POINTS = {
+        '木級冒險者': 0,
+        '鐵級冒險者': 100,
+        '銅級冒險者': 200,
+        '銀級冒險者': 300,
+        '金級冒險者': 400,
+        '白金級冒險者': 500,
+        '黑鋼級冒險者': 600,
+        '秘銀級冒險者': 700,
+        '山鐵級冒險者': 800,
+        '神金級冒險者': 900,
+        '傳說級冒險者': 1000
+    }
+    level_num = LEVEL_NAME_TO_NUM.get(user.adventurer_level, 1)
+    level_names = list(LEVEL_NAME_TO_POINTS.keys())
+    current_index = level_names.index(user.adventurer_level)
+    if current_index + 1 < len(level_names):
+        next_level_name = level_names[current_index + 1]
+        next_level_points = LEVEL_NAME_TO_POINTS[next_level_name]
+    else:
+        next_level_points = LEVEL_NAME_TO_POINTS[user.adventurer_level]  # 已達最高級
+    return render_template('adventurer_profile.html', user=user, user_tasks=user_tasks, achievements=achievements, level_num=level_num, next_level_points=next_level_points)
+
+@app.route('/upload_avatar', methods=['POST'])
+@login_required
+def upload_avatar():
+    if 'avatar' not in request.files:
+        flash('沒有選擇檔案', 'error')
+        return redirect(url_for('adventurer_profile'))
+    
+    file = request.files['avatar']
+    if file.filename == '':
+        flash('沒有選擇檔案', 'error')
+        return redirect(url_for('adventurer_profile'))
+    
+    if file and allowed_file(file.filename):
+        filename = secure_filename(f"{session['user_id']}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{file.filename}")
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(file_path)
+        
+        # 更新使用者的頭像 URL
+        user = User.query.get(session['user_id'])
+        user.avatar_url = f"uploads/avatars/{filename}"
+        db.session.commit()
+        
+        flash('頭像已更新', 'success')
+    else:
+        flash('不支援的檔案格式', 'error')
+    
+    return redirect(url_for('adventurer_profile'))
 
 if __name__ == '__main__':
     with app.app_context():

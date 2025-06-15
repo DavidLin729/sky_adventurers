@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">管理員選單</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('admin_dashboard') }}" class="list-group-item list-group-item-action">儀表板</a>
+                <a href="{{ url_for('admin_tasks') }}" class="list-group-item list-group-item-action">任務管理</a>
+                <a href="{{ url_for('admin_users') }}" class="list-group-item list-group-item-action">冒險者管理</a>
+                <a href="{{ url_for('admin_reviews') }}" class="list-group-item list-group-item-action">任務審核</a>
+                <a href="{{ url_for('admin_rewards') }}" class="list-group-item list-group-item-action">獎勵管理</a>
+                <a href="{{ url_for('admin_redeems') }}" class="list-group-item list-group-item-action active">兌換審核</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-9">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">兌換申請審核</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>冒險者</th>
+                                <th>獎勵</th>
+                                <th>申請時間</th>
+                                <th>狀態</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for redeem in redeems %}
+                            <tr>
+                                <td>{{ redeem.user.username }}</td>
+                                <td>{{ redeem.reward.name }}</td>
+                                <td>{{ redeem.redeemed_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    {% if redeem.status == 'pending' %}
+                                        <span class="badge bg-warning">待審核</span>
+                                    {% elif redeem.status == 'approved' %}
+                                        <span class="badge bg-success">已通過</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">已拒絕</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if redeem.status == 'pending' %}
+                                    <form method="POST" action="{{ url_for('review_redeem', redeem_id=redeem.id) }}" class="d-inline">
+                                        <input type="hidden" name="action" value="approve">
+                                        <button type="submit" class="btn btn-sm btn-success">通過</button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('review_redeem', redeem_id=redeem.id) }}" class="d-inline">
+                                        <input type="hidden" name="action" value="reject">
+                                        <button type="submit" class="btn btn-sm btn-danger">拒絕</button>
+                                    </form>
+                                    {% else %}-{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

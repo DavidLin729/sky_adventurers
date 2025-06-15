@@ -1,16 +1,21 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card">
+<div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+    <div class="col-md-5 d-none d-md-block">
+        <div class="h-100 d-flex align-items-center justify-content-center">
+            <img src="{{ url_for('static', filename='images/home.png') }}" alt="入口主視覺" class="img-fluid rounded shadow" style="max-height: 480px; width: 100%; object-fit: contain; border: 4px solid #C9B037; background: #fffbe6;">
+        </div>
+    </div>
+    <div class="col-md-7 col-lg-5">
+        <div class="card h-100 d-flex flex-column justify-content-center">
             <div class="card-header">
                 <h3 class="text-center">登入</h3>
             </div>
             <div class="card-body">
                 <form method="POST">
                     <div class="mb-3">
-                        <label for="username" class="form-label">使用者名稱</label>
+                        <label for="username" class="form-label">冒險者名稱</label>
                         <input type="text" class="form-control" id="username" name="username" required>
                     </div>
                     <div class="mb-3">
