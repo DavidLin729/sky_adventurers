@@ -108,4 +108,33 @@ sky-adventurer/
 
 - 開發者：David Lin
 - Email：davidlin729@gmail.com
+- GitHub：https://github.com/DavidLin729
+
+## 部署說明
+
+### 本地部署
+1. 安裝必要套件：
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. 初始化資料庫：
+   ```bash
+   python init_db.py
+   ```
+3. 啟動應用程式：
+   ```bash
+   python app.py
+   ```
+4. 訪問應用程式：
+   - 本機訪問：http://localhost:5000
+   - 區域網路訪問：http://192.168.50.67:5000
+
+### 外部訪問設定
+1. 確保應用程式使用 `host='0.0.0.0'` 運行
+2. 設定防火牆允許 5000 端口訪問
+3. 如需從網際網路訪問，請在路由器上設定端口轉發
+
+## 開發者資訊
+- 開發者：David Lin
+- Email：davidlin729@gmail.com
 - GitHub：https://github.com/DavidLin729 
