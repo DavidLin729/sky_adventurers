@@ -48,19 +48,45 @@
 ### 專案結構
 
 ```
-sky-adventurer/
-├── app.py              # 主程式
-├── models.py           # 資料庫模型
-├── requirements.txt    # 依賴套件
-├── static/            # 靜態檔案
-│   ├── css/          # 樣式表
-│   ├── js/           # JavaScript
-│   └── images/       # 圖片資源
-├── templates/         # 網頁模板
-│   ├── base.html     # 基礎模板
-│   ├── index.html    # 首頁
-│   └── admin/        # 管理員頁面
-└── data/             # 資料庫檔案
+sky-adventurers/
+├── app.py                    # 主程式
+├── requirements.txt          # 依賴套件
+├── family_rewards.db         # 資料庫檔案
+├── 天空冒險者公會.spec       # PyInstaller 打包設定
+├── .gitignore               # Git 忽略檔案
+├── README.md                # 專案說明文件
+├── 研發日誌.md              # 開發進度記錄
+├── static/                  # 靜態檔案
+│   ├── css/                # 樣式表
+│   │   └── style.css       # 主要樣式檔案
+│   ├── images/             # 圖片資源
+│   │   ├── badge-001.png ~ badge-012.png  # 成就徽章圖檔
+│   │   ├── default_avatar.png             # 預設頭像
+│   │   ├── home.png                       # 首頁圖片
+│   │   └── tasks.png                      # 任務圖片
+│   └── uploads/            # 使用者上傳檔案
+│       └── avatars/        # 使用者頭像
+├── templates/              # 網頁模板
+│   ├── base.html           # 基礎模板
+│   ├── index.html          # 首頁
+│   ├── login.html          # 登入頁面
+│   ├── register.html       # 註冊頁面
+│   ├── badges.html         # 成就徽章總覽
+│   ├── rewards.html        # 積分兌換頁面
+│   ├── adventurer_profile.html      # 冒險者個人檔案
+│   ├── adventurer_level_info.html   # 冒險者等級說明
+│   ├── user_task_records.html       # 任務紀錄
+│   └── admin/              # 管理員頁面
+│       ├── dashboard.html  # 管理儀表板
+│       ├── tasks.html      # 任務管理
+│       ├── users.html      # 冒險者管理
+│       ├── reviews.html    # 任務審核
+│       ├── rewards.html    # 獎勵管理
+│       └── redeems.html    # 兌換審核
+├── data/                   # 資料檔案
+│   ├── family_rewards.db   # 資料庫備份
+│   └── uploads/            # 上傳檔案備份
+└── build/                  # 建置檔案（PyInstaller 產生）
 ```
 
 ### 打包說明
