@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.badge-img {
+    width: 64px;
+    height: 64px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px #bfa14a44;
+    background: #fffbe6;
+    padding: 4px;
+}
+.badge-img:hover {
+    box-shadow: 0 0 8px #bfa14a;
+}
+</style>
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">成就徽章總覽</h5>
+    </div>
+    <div class="card-body">
+        <table class="table align-middle text-center">
+            <thead>
+                <tr>
+                    <th>徽章圖示</th>
+                    <th>成就徽章名稱</th>
+                    <th>對應的任務名稱</th>
+                    <th>任務達成次數</th>
+                    <th>解鎖條件描述</th>
+                    <th>額外積分獎勵</th>
+                    <th>描述</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><img src="{{ url_for('static', filename='images/badge-001.png') }}" class="badge-img" alt="夜貓轉型大作戰"></td>
+                    <td>夜貓轉型大作戰</td>
+                    <td>準時就寢</td>
+                    <td>5</td>
+                    <td>連續完成5天</td>
+                    <td>60</td>
+                    <td>我終於不是夜貓子，晚安世界～</td>
+                </tr>
+                <tr>
+                    <td><img src="{{ url_for('static', filename='images/badge-002.png') }}" class="badge-img" alt="校門開開快腳腳"></td>
+                    <td>校門開開快腳腳</td>
+                    <td>準時上學</td>
+                    <td>5</td>
+                    <td>一週5天都準時</td>
+                    <td>60</td>
+                    <td>我是7:50超人，校門口的風我先感受到啦！</td>
+                </tr>
+                <tr>
+                    <td><img src="{{ url_for('static', filename='images/badge-003.png') }}" class="badge-img" alt="放學三寶俠"></td>
+                    <td>放學三寶俠</td>
+                    <td>回家三件事</td>
+                    <td>5</td>
+                    <td>連續5天完成</td>
+                    <td>60</td>
+                    <td>餐袋、水壺、聯絡簿，拯救爸媽好幫手！</td>
+                </tr>
+                <tr>
+                    <td><img src="{{ url_for('static', filename='images/badge-004.png') }}" class="badge-img" alt="整理小包神"></td>
+                    <td>整理小包神</td>
+                    <td>書包整理</td>
+                    <td>10</td>
+                    <td>書包整理10次</td>
+                    <td>60</td>
+                    <td>書包沒和鉛筆跟橡皮分手，連火車都想搬進來！</td>
+                </tr>
+                <tr>
+                    <td><img src="{{ url_for('static', filename='images/badge-005.png') }}" class="badge-img" alt="文字魔法師"></td>
+                    <td>文字魔法師</td>
+                    <td>閱讀心得一篇</td>
+                    <td>10</td>
+                    <td>累積10篇</td>
+                    <td>60</td>
+                    <td>讀書讓我變得好強！文字是我的魔法棒～</td>
+                </tr>
+                <tr>
+                    <td><img src="{{ url_for('static', filename='images/badge-006.png') }}" class="badge-img" alt="週報牛奶王"></td>
+                    <td>週報牛奶王</td>
+                    <td>牛奶週報</td>
+                    <td>5</td>
+                    <td>累積交5次</td>
+                    <td>60</td>
+                    <td>每週都有交報，我的飲食保健牛奶一樣純白！</td>
+                </tr>
+                <tr>
+                    <td><img src="{{ url_for('static', filename='images/badge-007.png') }}" class="badge-img" alt="泡泡水大戰士"></td>
+                    <td>泡泡水大戰士</td>
+                    <td>洗碗</td>
+                    <td>10</td>
+                    <td>洗10次碗</td>
+                    <td>60</td>
+                    <td>我手上不是泡泡，是一種超級力量！</td>
+                </tr>
+                <tr>
+                    <td><img src="{{ url_for('static', filename='images/badge-008.png') }}" class="badge-img" alt="撐住小鋼鐵"></td>
+                    <td>撐住小鋼鐵</td>
+                    <td>棒式5分鐘</td>
+                    <td>10</td>
+                    <td>完成10次</td>
+                    <td>60</td>
+                    <td>撐得住，就贏住！我是地板上的小鋼鐵！</td>
+                </tr>
+                <tr>
+                    <td><img src="{{ url_for('static', filename='images/badge-009.png') }}" class="badge-img" alt="乒乓星球征服者"></td>
+                    <td>乒乓星球征服者</td>
+                    <td>桌球500下</td>
+                    <td>10</td>
+                    <td>完成10次</td>
+                    <td>60</td>
+                    <td>球拍就是我的劍，球桌是我的星球！</td>
+                </tr>
+                <tr>
+                    <td><img src="{{ url_for('static', filename='images/badge-010.png') }}" class="badge-img" alt="彈跳力爆表獸"></td>
+                    <td>彈跳力爆表獸</td>
+                    <td>開合跳300下</td>
+                    <td>10</td>
+                    <td>完成10次</td>
+                    <td>60</td>
+                    <td>我的能量比跳跳糖還強，一跳跳到雲上啦！</td>
+                </tr>
+                <tr>
+                    <td><img src="{{ url_for('static', filename='images/badge-011.png') }}" class="badge-img" alt="寶可夢訓練員出道"></td>
+                    <td>寶可夢訓練員出道</td>
+                    <td>寶可夢卡牌對戰</td>
+                    <td>10</td>
+                    <td>對戰10次</td>
+                    <td>60</td>
+                    <td>一局比賽一段成長，我也能成為冠軍之路的開始！</td>
+                </tr>
+                <tr>
+                    <td><img src="{{ url_for('static', filename='images/badge-012.png') }}" class="badge-img" alt="黑白格鬥王"></td>
+                    <td>黑白格鬥王</td>
+                    <td>圍棋晉級</td>
+                    <td>2</td>
+                    <td>成功晉級2次</td>
+                    <td>60</td>
+                    <td>我的腦袋比圍棋盤還靈活，每下一子都是戰術！</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %} 

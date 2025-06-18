@@ -14,11 +14,11 @@
         <div class="mb-2">等級：{{ user.adventurer_level }}
           <img src="{{ url_for('static', filename='images/badge-0' ~ ('%02d' % level_num) ~ '.png') }}" style="width:32px;height:32px;vertical-align:middle;">
         </div>
-        <div>積分：{{ user.points }}</div>
+        <div>積分：{{ total_points }}</div>
         <div class="progress mt-3" style="height: 20px;">
           <div class="progress-bar bg-success" role="progressbar" style="width: {{ user.level_progress }}%;" aria-valuenow="{{ user.level_progress }}" aria-valuemin="0" aria-valuemax="100">{{ user.level_progress }}%</div>
         </div>
-        <div class="mt-2">距離下一級還需 <b>{{ next_level_points - user.points }}</b> 分</div>
+        <div class="mt-2">距離下一級還需 <b>{{ next_level_points - total_points }}</b> 分</div>
       </div>
     </div>
     <div class="card mb-4">

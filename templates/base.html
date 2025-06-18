@@ -43,6 +43,7 @@
                                     <li><a class="dropdown-item" href="{{ url_for('rewards') }}">積分兌換</a></li>
                                     <li><a class="dropdown-item" href="{{ url_for('adventurer_level_info') }}">冒險者等級說明</a></li>
                                     <li><a class="dropdown-item" href="{{ url_for('adventurer_profile') }}">冒險者個人檔案</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('badges') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'badges' %} active{% endif %}">成就徽章</a></li>
                                 </ul>
                             </li>
                         {% endif %}
@@ -91,6 +92,7 @@
                         <a href="{{ url_for('rewards') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'rewards' %} active{% endif %}">積分兌換</a>
                         <a href="{{ url_for('adventurer_level_info') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'adventurer_level_info' %} active{% endif %}">冒險者等級說明</a>
                         <a href="{{ url_for('adventurer_profile') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'adventurer_profile' %} active{% endif %}">冒險者個人檔案</a>
+                        <a href="{{ url_for('badges') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'badges' %} active{% endif %}">成就徽章</a>
                     </div>
                 </div>
             </div>

@@ -531,6 +531,7 @@ def adventurer_profile():
         '神金級冒險者': 900,
         '傳說級冒險者': 1000
     }
+    total_points = user.points + user.used_points
     level_num = LEVEL_NAME_TO_NUM.get(user.adventurer_level, 1)
     level_names = list(LEVEL_NAME_TO_POINTS.keys())
     current_index = level_names.index(user.adventurer_level)
@@ -539,7 +540,7 @@ def adventurer_profile():
         next_level_points = LEVEL_NAME_TO_POINTS[next_level_name]
     else:
         next_level_points = LEVEL_NAME_TO_POINTS[user.adventurer_level]  # 已達最高級
-    return render_template('adventurer_profile.html', user=user, user_tasks=user_tasks, achievements=achievements, level_num=level_num, next_level_points=next_level_points)
+    return render_template('adventurer_profile.html', user=user, user_tasks=user_tasks, achievements=achievements, level_num=level_num, next_level_points=next_level_points, total_points=total_points)
 
 @app.route('/upload_avatar', methods=['POST'])
 @login_required
@@ -568,6 +569,10 @@ def upload_avatar():
         flash('不支援的檔案格式', 'error')
     
     return redirect(url_for('adventurer_profile'))
+
+@app.route('/badges')
+def badges():
+    return render_template('badges.html')
 
 if __name__ == '__main__':
     with app.app_context():
