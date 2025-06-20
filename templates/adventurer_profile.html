@@ -12,7 +12,7 @@
         </div>
         <h3 class="mt-3">{{ user.username }}</h3>
         <div class="mb-2">等級：{{ user.adventurer_level }}
-          <img src="{{ url_for('static', filename='images/badge-0' ~ ('%02d' % level_num) ~ '.png') }}" style="width:32px;height:32px;vertical-align:middle;">
+          <img src="{{ url_for('static', filename='images/LV-badge-0' ~ ('%02d' % level_num) ~ '.png') }}" style="width:32px;height:32px;vertical-align:middle;">
         </div>
         <div>積分：{{ total_points }}</div>
         <div class="progress mt-3" style="height: 20px;">
@@ -24,9 +24,11 @@
     <div class="card mb-4">
       <div class="card-header">成就徽章</div>
       <div class="card-body text-center">
-        {% if achievements %}
-          {% for badge in achievements %}
-            <img src="{{ badge.img_url }}" title="{{ badge.name }}" style="width:48px;height:48px;margin:4px;">
+        {% if user_badges %}
+          {% for user_badge in user_badges %}
+            <img src="{{ url_for('static', filename=user_badge.badge.image_url) }}" 
+                 title="{{ user_badge.badge.name }} - {{ user_badge.badge.description }}" 
+                 style="width:48px;height:48px;margin:4px;border-radius:8px;box-shadow:0 2px 8px #bfa14a44;">
           {% endfor %}
         {% else %}
           <span class="text-muted">尚未獲得成就徽章</span>

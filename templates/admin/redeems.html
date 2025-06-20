@@ -12,8 +12,9 @@
                 <a href="{{ url_for('admin_tasks') }}" class="list-group-item list-group-item-action">任務管理</a>
                 <a href="{{ url_for('admin_users') }}" class="list-group-item list-group-item-action">冒險者管理</a>
                 <a href="{{ url_for('admin_reviews') }}" class="list-group-item list-group-item-action">任務審核</a>
-                <a href="{{ url_for('admin_rewards') }}" class="list-group-item list-group-item-action">獎勵管理</a>
-                <a href="{{ url_for('admin_redeems') }}" class="list-group-item list-group-item-action active">兌換審核</a>
+                <a href="{{ url_for('admin_rewards') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_rewards' %} active{% endif %}">獎勵管理</a>
+                <a href="{{ url_for('admin_redeems') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_redeems' %} active{% endif %}">兌換審核</a>
+                <a href="{{ url_for('admin_badges') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_badges' %} active{% endif %}">成就徽章管理</a>
             </div>
         </div>
     </div>

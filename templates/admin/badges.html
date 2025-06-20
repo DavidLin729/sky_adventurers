@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">管理員選單</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('admin_dashboard') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_dashboard' %} active{% endif %}">儀表板</a>
+                <a href="{{ url_for('admin_tasks') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_tasks' %} active{% endif %}">任務管理</a>
+                <a href="{{ url_for('admin_users') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_users' %} active{% endif %}">冒險者管理</a>
+                <a href="{{ url_for('admin_reviews') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_reviews' %} active{% endif %}">任務審核</a>
+                <a href="{{ url_for('admin_rewards') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_rewards' %} active{% endif %}">獎勵管理</a>
+                <a href="{{ url_for('admin_redeems') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_redeems' %} active{% endif %}">兌換審核</a>
+                <a href="{{ url_for('admin_badges') }}" class="list-group-item list-group-item-action{% if request.endpoint == 'admin_badges' %} active{% endif %}">成就徽章管理</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-9">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">成就徽章管理</h5>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addBadgeModal">
+                    新增徽章
+                </button>
+            </div>
+            <div class="card-body">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>徽章圖示</th>
+                                <th>徽章名稱</th>
+                                <th>對應任務</th>
+                                <th>解鎖條件</th>
+                                <th>解鎖目標</th>
+                                <th>額外積分</th>
+                                <th>狀態</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for badge in badges %}
+                            <tr>
+                                <td>
+                                    <img src="{{ url_for('static', filename=badge.image_url) }}" alt="{{ badge.name }}" style="width:48px;height:48px;border-radius:8px;">
+                                </td>
+                                <td>{{ badge.name }}</td>
+                                <td>{{ badge.task_name or '無' }}</td>
+                                <td>{{ badge.unlock_condition }}</td>
+                                <td>{{ badge.unlock_target }} 次</td>
+                                <td>{{ badge.extra_points }}</td>
+                                <td>
+                                    {% if badge.is_active %}
+                                        <span class="badge bg-success">啟用</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">停用</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#editBadgeModal{{ badge.id }}">編輯</button>
+                                    <form method="POST" action="{{ url_for('admin_delete_badge', badge_id=badge.id) }}" class="d-inline" onsubmit="return confirm('確定要刪除這個徽章嗎？');">
+                                        <button type="submit" class="btn btn-sm btn-danger">刪除</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增徽章 Modal -->
+<div class="modal fade" id="addBadgeModal" tabindex="-1" aria-labelledby="addBadgeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('admin_add_badge') }}" enctype="multipart/form-data">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addBadgeModalLabel">新增成就徽章</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">徽章名稱</label>
+                                <input type="text" class="form-control" name="name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">徽章描述</label>
+                                <textarea class="form-control" name="description" rows="3"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">對應任務名稱</label>
+                                <input type="text" class="form-control" name="task_name">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">解鎖條件</label>
+                                <input type="text" class="form-control" name="unlock_condition" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">解鎖目標</label>
+                                <input type="number" class="form-control" name="unlock_target" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">額外積分獎勵</label>
+                                <input type="number" class="form-control" name="extra_points" value="60" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">徽章圖檔</label>
+                                <input type="file" class="form-control" name="image" accept="image/*" required>
+                                <div class="form-text">支援 PNG、JPG、JPEG、GIF 格式</div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="is_active" checked>
+                                    <label class="form-check-label">
+                                        啟用徽章
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">新增</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 編輯徽章 Modal -->
+{% for badge in badges %}
+<div class="modal fade" id="editBadgeModal{{ badge.id }}" tabindex="-1" aria-labelledby="editBadgeModalLabel{{ badge.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('admin_edit_badge') }}" enctype="multipart/form-data">
+                <input type="hidden" name="badge_id" value="{{ badge.id }}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editBadgeModalLabel{{ badge.id }}">編輯成就徽章</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">徽章名稱</label>
+                                <input type="text" class="form-control" name="name" value="{{ badge.name }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">徽章描述</label>
+                                <textarea class="form-control" name="description" rows="3">{{ badge.description }}</textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">對應任務名稱</label>
+                                <input type="text" class="form-control" name="task_name" value="{{ badge.task_name or '' }}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">解鎖條件</label>
+                                <input type="text" class="form-control" name="unlock_condition" value="{{ badge.unlock_condition }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">解鎖目標</label>
+                                <input type="number" class="form-control" name="unlock_target" value="{{ badge.unlock_target }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">額外積分獎勵</label>
+                                <input type="number" class="form-control" name="extra_points" value="{{ badge.extra_points }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">目前圖檔</label>
+                                <img src="{{ url_for('static', filename=badge.image_url) }}" alt="{{ badge.name }}" class="img-fluid mb-2" style="max-height:100px;">
+                                <input type="file" class="form-control" name="image" accept="image/*">
+                                <div class="form-text">選擇新圖檔以替換現有圖檔</div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="is_active" {% if badge.is_active %}checked{% endif %}>
+                                    <label class="form-check-label">
+                                        啟用徽章
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">儲存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %} 

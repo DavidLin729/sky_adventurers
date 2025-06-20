@@ -84,6 +84,26 @@ class RewardRedeem(db.Model):
     user = db.relationship('User', backref='reward_redeems')
     reward = db.relationship('Reward', backref='redeems')
 
+class Badge(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    image_url = db.Column(db.String(200), nullable=False)
+    unlock_condition = db.Column(db.String(200), nullable=False)
+    unlock_target = db.Column(db.Integer, default=1)  # 需要完成的任務次數
+    extra_points = db.Column(db.Integer, default=60)
+    task_name = db.Column(db.String(100))
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+
+class UserBadge(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    badge_id = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
+    unlocked_at = db.Column(db.DateTime, default=datetime.now)
+    user = db.relationship('User', backref='user_badges')
+    badge = db.relationship('Badge', backref='user_badges')
+
 # 裝飾器：檢查是否為管理員
 def admin_required(f):
     @wraps(f)
@@ -313,6 +333,10 @@ def review_task(user_task_id):
         if 'review_notifications' not in session:
             session['review_notifications'] = []
         session['review_notifications'].append(f"您的任務『{user_task.task.title}』已通過審核，獲得 {user_task.task.points} 分！")
+        
+        # 檢查並頒發徽章
+        check_and_award_badges(user_task.user_id)
+        
         flash('任務已通過', 'success')
     elif action == 'reject':
         user_task.status = 'rejected'
@@ -504,7 +528,10 @@ def adventurer_profile():
     user_id = session['user_id']
     user = User.query.get(user_id)
     user_tasks = UserTask.query.filter_by(user_id=user_id).order_by(UserTask.completed_at.desc()).limit(10).all()
-    achievements = []  # 請根據你的專案實作
+    
+    # 取得使用者已獲得的徽章
+    user_badges = UserBadge.query.filter_by(user_id=user_id).join(Badge).filter(Badge.is_active == True).all()
+    
     LEVEL_NAME_TO_NUM = {
         '木級冒險者': 1,
         '鐵級冒險者': 2,
@@ -540,7 +567,7 @@ def adventurer_profile():
         next_level_points = LEVEL_NAME_TO_POINTS[next_level_name]
     else:
         next_level_points = LEVEL_NAME_TO_POINTS[user.adventurer_level]  # 已達最高級
-    return render_template('adventurer_profile.html', user=user, user_tasks=user_tasks, achievements=achievements, level_num=level_num, next_level_points=next_level_points, total_points=total_points)
+    return render_template('adventurer_profile.html', user=user, user_tasks=user_tasks, user_badges=user_badges, level_num=level_num, next_level_points=next_level_points, total_points=total_points)
 
 @app.route('/upload_avatar', methods=['POST'])
 @login_required
@@ -572,7 +599,135 @@ def upload_avatar():
 
 @app.route('/badges')
 def badges():
-    return render_template('badges.html')
+    badges = Badge.query.filter_by(is_active=True).order_by(Badge.created_at.asc()).all()
+    return render_template('badges.html', badges=badges)
+
+# 管理員：成就徽章管理頁面
+@app.route('/admin/badges')
+@admin_required
+def admin_badges():
+    badges = Badge.query.order_by(Badge.created_at.desc()).all()
+    return render_template('admin/badges.html', badges=badges)
+
+# 管理員：新增徽章
+@app.route('/admin/badge/add', methods=['POST'])
+@admin_required
+def admin_add_badge():
+    if 'image' not in request.files:
+        flash('請選擇徽章圖檔', 'error')
+        return redirect(url_for('admin_badges'))
+    
+    file = request.files['image']
+    if file.filename == '':
+        flash('請選擇徽章圖檔', 'error')
+        return redirect(url_for('admin_badges'))
+    
+    if file and allowed_file(file.filename):
+        filename = secure_filename(f"badge_{datetime.now().strftime('%Y%m%d%H%M%S')}_{file.filename}")
+        file_path = os.path.join('static/images/badges', filename)
+        
+        # 確保目錄存在
+        os.makedirs('static/images/badges', exist_ok=True)
+        
+        file.save(file_path)
+        
+        badge = Badge(
+            name=request.form.get('name'),
+            description=request.form.get('description'),
+            image_url=f"images/badges/{filename}",
+            unlock_condition=request.form.get('unlock_condition'),
+            unlock_target=int(request.form.get('unlock_target', 1)),
+            extra_points=int(request.form.get('extra_points', 60)),
+            task_name=request.form.get('task_name'),
+            is_active='is_active' in request.form
+        )
+        db.session.add(badge)
+        db.session.commit()
+        flash('徽章已新增', 'success')
+    else:
+        flash('不支援的檔案格式', 'error')
+    
+    return redirect(url_for('admin_badges'))
+
+# 管理員：編輯徽章
+@app.route('/admin/badge/edit', methods=['POST'])
+@admin_required
+def admin_edit_badge():
+    badge = Badge.query.get_or_404(request.form.get('badge_id'))
+    badge.name = request.form.get('name')
+    badge.description = request.form.get('description')
+    badge.unlock_condition = request.form.get('unlock_condition')
+    badge.unlock_target = int(request.form.get('unlock_target', 1))
+    badge.extra_points = int(request.form.get('extra_points', 60))
+    badge.task_name = request.form.get('task_name')
+    badge.is_active = 'is_active' in request.form
+    
+    # 處理圖檔更新
+    if 'image' in request.files and request.files['image'].filename != '':
+        file = request.files['image']
+        if file and allowed_file(file.filename):
+            filename = secure_filename(f"badge_{datetime.now().strftime('%Y%m%d%H%M%S')}_{file.filename}")
+            file_path = os.path.join('static/images/badges', filename)
+            
+            # 確保目錄存在
+            os.makedirs('static/images/badges', exist_ok=True)
+            
+            file.save(file_path)
+            badge.image_url = f"images/badges/{filename}"
+    
+    db.session.commit()
+    flash('徽章已更新', 'success')
+    return redirect(url_for('admin_badges'))
+
+# 管理員：刪除徽章
+@app.route('/admin/badge/<int:badge_id>/delete', methods=['POST'])
+@admin_required
+def admin_delete_badge(badge_id):
+    badge = Badge.query.get_or_404(badge_id)
+    db.session.delete(badge)
+    db.session.commit()
+    flash('徽章已刪除', 'success')
+    return redirect(url_for('admin_badges'))
+
+def check_and_award_badges(user_id):
+    """檢查並頒發徽章"""
+    user = User.query.get(user_id)
+    if not user:
+        return
+    
+    # 取得所有啟用的徽章
+    badges = Badge.query.filter_by(is_active=True).all()
+    
+    for badge in badges:
+        if not badge.task_name:
+            continue
+            
+        # 檢查使用者是否已經獲得此徽章
+        existing_badge = UserBadge.query.filter_by(user_id=user_id, badge_id=badge.id).first()
+        if existing_badge:
+            continue
+            
+        # 計算使用者完成該任務的次數
+        task_completion_count = UserTask.query.filter_by(
+            user_id=user_id,
+            status='approved'
+        ).join(Task).filter(Task.title == badge.task_name).count()
+        
+        # 檢查是否達到解鎖目標
+        if task_completion_count >= badge.unlock_target:
+            # 頒發徽章
+            user_badge = UserBadge(user_id=user_id, badge_id=badge.id)
+            db.session.add(user_badge)
+            
+            # 給予額外積分
+            user.points += badge.extra_points
+            
+            db.session.commit()
+            
+            # 設定通知
+            if 'badge_notifications' not in session:
+                session['badge_notifications'] = []
+            session['badge_notifications'].append(f"恭喜獲得成就徽章『{badge.name}』！獲得 {badge.extra_points} 積分獎勵！")
 
 if __name__ == '__main__':
     with app.app_context():
