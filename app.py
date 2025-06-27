@@ -337,6 +337,9 @@ def review_task(user_task_id):
         # 檢查並頒發徽章
         check_and_award_badges(user_task.user_id)
         
+        # 檢查並晉升等級
+        check_and_upgrade_level(user_task.user_id)
+        
         flash('任務已通過', 'success')
     elif action == 'reject':
         user_task.status = 'rejected'
@@ -689,6 +692,48 @@ def admin_delete_badge(badge_id):
     flash('徽章已刪除', 'success')
     return redirect(url_for('admin_badges'))
 
+def check_and_upgrade_level(user_id):
+    """檢查並自動晉升冒險者等級"""
+    user = User.query.get(user_id)
+    if not user:
+        return
+    
+    # 等級對應積分
+    LEVEL_NAME_TO_POINTS = {
+        '木級冒險者': 0,
+        '鐵級冒險者': 100,
+        '銅級冒險者': 200,
+        '銀級冒險者': 300,
+        '金級冒險者': 400,
+        '白金級冒險者': 500,
+        '黑鋼級冒險者': 600,
+        '秘銀級冒險者': 700,
+        '山鐵級冒險者': 800,
+        '神金級冒險者': 900,
+        '傳說級冒險者': 1000
+    }
+    
+    # 計算總積分
+    total_points = user.points + user.used_points
+    
+    # 找出符合當前積分的最高等級
+    new_level = '木級冒險者'
+    for level_name, required_points in LEVEL_NAME_TO_POINTS.items():
+        if total_points >= required_points:
+            new_level = level_name
+    
+    # 如果等級有變化，更新等級並通知
+    if new_level != user.adventurer_level:
+        old_level = user.adventurer_level
+        user.adventurer_level = new_level
+        
+        # 設定升級通知
+        if 'level_up_notifications' not in session:
+            session['level_up_notifications'] = []
+        session['level_up_notifications'].append(f"恭喜晉升為『{new_level}』！從 {old_level} 升級成功！")
+        
+        db.session.commit()
+
 def check_and_award_badges(user_id):
     """檢查並頒發徽章"""
     user = User.query.get(user_id)
@@ -721,6 +766,9 @@ def check_and_award_badges(user_id):
             
             # 給予額外積分
             user.points += badge.extra_points
+            
+            # 檢查並晉升等級
+            check_and_upgrade_level(user_id)
             
             db.session.commit()
             

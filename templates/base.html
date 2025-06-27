@@ -79,6 +79,39 @@
                 {% endfor %}
             {% endif %}
         {% endwith %}
+        
+        <!-- 等級晉升通知 -->
+        {% if session.level_up_notifications %}
+            {% for notification in session.level_up_notifications %}
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <strong>🎉 等級晉升！</strong> {{ notification }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+            {% set _ = session.pop('level_up_notifications', None) %}
+        {% endif %}
+        
+        <!-- 徽章獲得通知 -->
+        {% if session.badge_notifications %}
+            {% for notification in session.badge_notifications %}
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <strong>🏅 成就徽章！</strong> {{ notification }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+            {% set _ = session.pop('badge_notifications', None) %}
+        {% endif %}
+        
+        <!-- 任務審核通知 -->
+        {% if session.review_notifications %}
+            {% for notification in session.review_notifications %}
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    {{ notification }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+            {% set _ = session.pop('review_notifications', None) %}
+        {% endif %}
         <div class="row">
             {% if request.endpoint != 'login' and not session.is_admin %}
             <div class="col-md-3">
